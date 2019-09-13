@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Pizzaroulette",
+  "version": "1.0",
+
+  "description": "Adds a red border to all webpages matching mozilla.org.",
+
+  "icons": {
+    "48": "icons/48.png",
+    "96": "icons/96.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.just-eat.dk/restaurants*"],
+      "js": ["konva.min.js","index.js"]
+    }
+  ]
+
+}
