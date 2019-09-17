@@ -4,10 +4,17 @@
 let theWheel = undefined;
 let container = undefined;
 let item = undefined;
-let possibilities = undefined;
+let possibilities = [];
+let eventsToRemove = [];
+var angularVelocities = [];
+var lastRotation = 0;
+var controlled = false;
+var finished = false;
+var angularFriction = 0.2;
+var target, activeWedge, stage, layer, wheel, pointer;
+var pizzaWheelIsShown = false;
 
 let toArray = e => Array.prototype.slice.call(e)
-
 let getAllItems = () =>
   toArray(document.getElementsByClassName("menu-product product"))
     .map((e, i) => ({
@@ -19,37 +26,107 @@ let getAllItems = () =>
       i
     }))
 let items = getAllItems();
+var numWedges = items.length;
+
+
+let getRandomSpeed = () => Math.random() * (items.length / 5) + 0.1;
+var angularVelocity = getRandomSpeed();
+
+let spin = () => {
+  angularVelocity = getRandomSpeed();
+  controlled = false;
+  finished = false;
+};
+
 
 let createButton = () => {
   let li = document.createElement("li");
-  li.innerHTML = `<a class="nav-list-link" style="cursor:pointer;" onclick="(()=>{let e = document.createEvent('Events');e.initEvent('CREATE_PIZZA');document.dispatchEvent(e)})()">Pizzaroulette</a>`;
-  li.setAttribute("class", "nav-list-item");
+  li.classList.add("nav-list-item");
+  let a = document.createElement("a");
+  a.classList.add("nav-list-link");
+  a.style.cursor = "pointer";
+  a.id = "CREATE_PIZZA";
+  a.innerText = "Pizzaroulette";
+  li.appendChild(a);
   let ul = document.getElementsByClassName("nav-list")[0];
   ul.appendChild(li);
+  a.addEventListener('click', createPizzawheel);
 }
 
 let alertPrize = a => alert(a);
 
 let createPizzawheel = () => {
+  if (pizzaWheelIsShown) return;
+  controlled = false;
+  finished = false;
+  pizzaWheelIsShown = true;
+
   let div = document.createElement("div");
   div.setAttribute(
     "style",
     "position:fixed;z-index:99999;width:750px;min-height:400px;left:25vw;top:100px;background:white;"
   )
-  div.innerHTML = `<h1>Du får: <span id='rouletteres'></span><br><div id='konva-container'></div><br>` +
-    `<button style="display: none;"id='possibilities' onclick="(()=>{let e = document.createEvent('Events');e.initEvent('CREATE_PIZZA_POS');document.dispatchEvent(e)})()">Vælg en variant</button>` +
-    `<button onclick="(()=>{let e = document.createEvent('Events');e.initEvent('CLOSE');document.dispatchEvent(e)})()">Luk</button>`
+
+  let h1 = document.createElement("h1");
+  h1.innerText = "You get: "
+  let span = document.createElement("span");
+  span.id = "rouletteres";
+  h1.appendChild(span);
+  div.appendChild(h1);
+  div.appendChild(document.createElement("br"));
+
+  let konvaContainer = document.createElement("div");
+  konvaContainer.id = "konva-container";
+  div.appendChild(konvaContainer);
+
+  div.appendChild(document.createElement("br"));
+
+  possibilities = document.createElement("button");
+  possibilities.style.display = "none";
+  possibilities.id = "possibilities";
+  possibilities.innerText = "Pick a variant";
+  div.appendChild(possibilities);
+
+  let closeBtn = document.createElement("button");
+  closeBtn.innerText = "Close";
+  div.appendChild(closeBtn);
+
+  let spinBtn = document.createElement("button");
+  spinBtn.innerText = "Spin";
+  div.appendChild(spinBtn);
+
   container = document.body.appendChild(div);
-  possibilities = document.getElementById("possibilities");
+
+  possibilities.addEventListener('click', createPizzawheelPossibilities);
+  eventsToRemove.push({
+    el: possibilities,
+    type: 'click',
+    fn: createPizzawheelPossibilities
+  });
+
+  closeBtn.addEventListener('click', close);
+  eventsToRemove.push({el: closeBtn, type: 'click', fn: close});
+
+  spinBtn.addEventListener("click", spin);
+  eventsToRemove.push({el: spinBtn, type: 'click', fn: spin});
+
   init(items, 'konva-container');
 }
 
 let createPizzawheelPossibilities = () => {
-  alert("Din variation er: " + item.possibilities[Math.floor(Math.random() * item.possibilities.length)].name);
+  alert("Your variant is: " +
+        item.possibilities[
+          Math.floor(Math.random() * item.possibilities.length)
+        ].name);
 }
 
 let close = () => {
+  eventsToRemove.forEach(e => {
+    e.el.removeEventListener(e.type, e.fn);
+  })
+  eventsToRemove = [];
   container.remove();
+  pizzaWheelIsShown = false;
 }
 
 let start = () => {
@@ -58,22 +135,8 @@ let start = () => {
 }
 
 start();
-document.addEventListener("CREATE_PIZZA_POS", createPizzawheelPossibilities, false, true);
-document.addEventListener("CREATE_PIZZA", createPizzawheel, false, true);
-document.addEventListener("CLOSE", close, false, true);
-
-var width = window.innerWidth;
-var height = window.innerHeight;
 
 Konva.angleDeg = false;
-var angularVelocity = 0;
-var angularVelocities = [];
-var lastRotation = 0;
-var controlled = false;
-var numWedges = items.length;
-var angularFriction = 0.2;
-var target, activeWedge, stage, layer, wheel, pointer;
-var finished = false;
 
 function getAverageAngularVelocity() {
   var total = 0;
@@ -188,9 +251,8 @@ function animate(frame) {
           .findOne('Text')
           .text();
         var price = parseInt(text.split('\n').join(''));
-        // alert('You price is' + price[2]);
         item = items[price];
-        document.getElementById("rouletteres").innerHTML = item.name;
+        document.getElementById("rouletteres").innerText = item.name;
         item.el.scrollIntoView();
         window.scrollBy(0, -150);
         possibilities.style.display = item.possibilities.length > 1 ? "initial" : "none";
@@ -220,6 +282,7 @@ function animate(frame) {
   }
 }
 function init(items, container) {
+  angularVelocity = getRandomSpeed();
   stage = new Konva.Stage({
     container: container,
     width: 700,

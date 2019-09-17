@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
   "name": "Pizzaroulette",
-  "version": "1.0",
+  "version": "1.2",
 
-  "description": "Adds a red border to all webpages matching mozilla.org.",
+  "description": "Helps with playing pizzaroulette",
 
   "icons": {
     "48": "icons/48.png",
@@ -12,7 +12,13 @@
 
   "content_scripts": [
     {
-      "matches": ["*://*.just-eat.dk/restaurants*"],
+      "matches": [
+        "*://*.just-eat.dk/restaurants*",
+        "*://*.just-eat.ie/restaurants*",
+        "*://*.justeat.it/restaurants*",
+        "*://*.just-eat.no/restaurants*",
+        "*://*.just-eat.es/restaurants*"
+      ],
       "js": ["konva.min.js","index.js"]
     }
   ]
